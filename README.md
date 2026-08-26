@@ -1,0 +1,80 @@
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+
+
+# ch.fso.pasta
+
+[![dataset](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/benjamin-arfa/ch.fso.pasta/main/data-raw/shield.json)](https://github.com/benjamin-arfa/ch.fso.pasta/actions/workflows/update_data.yaml)
+
+The ch.fso.pasta package provides versioned time series data and their meta
+information for scientific research. In addition, the package contains the
+extract-transform-load (ETL) functionality that sources the data from its
+original provider.
+
+**Arrivals and overnight stays in holiday homes and collective accommodation, by
+month** — the Swiss Federal Statistical Office's PASTA survey (statistics on
+supplementary accommodation, the sibling of HESTA hotel accommodation), monthly
+since 2017.
+
+Unlike the other FSO archives in OpenTSI, this one reads **directly from
+[stats.swiss](https://stats.swiss)** (Swiss Stats Explorer, SDMX REST) rather
+than from the KOF Time Series Database, so it needs no API key.
+`docs/PLAYBOOK.md` documents the recipe so it can be reused for any other
+stats.swiss dataflow.
+
+## Key structure
+
+```
+ch.fso.pasta.<accommodation>.<indicator>.<origin>.<operation>
+```
+
+| Segment | Codes |
+|---|---|
+| accommodation | `552001` holiday apartments/homes, `552002` group accommodation |
+| indicator | `20101` arrivals, `20201` overnight stays, `20401` length of stay |
+| origin | `tot` total, `ch` Switzerland, `ausl` foreign countries |
+| operation | `sumw` weighted sum, `valuew` weighted value, `ci` confidence interval (+/-) |
+
+The cube is sparse: arrivals and overnight stays come as `sumw` with a `ci`,
+length of stay as `valuew` only. Labels for every code, in German, French,
+Italian and English, are in `data-raw/metadata.yaml`.
+
+## A note on vintages
+
+OpenTSI archives use git history as the vintage archive. stats.swiss publishes
+only the *current* vintage, so unlike `opentsi/ch.fso.besta` this archive has no
+imported backlog: its history starts at the first automated commit and
+accumulates revisions from there.
+
+## Browse Time Series Data
+
+You can use GitHub's ability to render csv to explore the datasets — see
+[`data-raw/index.md`](data-raw/index.md).
+
+## Basic Data Consumption via opentimeseries
+
+``` r
+remotes::install_github("opentsi/opentimeseries")
+library(opentimeseries)
+
+# first param `series` defaults to NULL and fetches all series
+ts <- read_open_ts(
+  remote_archive = "benjamin-arfa/ch.fso.pasta"
+)
+
+ts
+```
+
+``` r
+library(opentimeseries)
+library(tsbox)
+
+# total overnight stays in holiday apartments
+ts <- read_open_ts(
+  series = "552001.20201.tot.sumw",
+  remote_archive = "benjamin-arfa/ch.fso.pasta"
+)
+
+ts$date <- as.Date(ts$date)
+ts_plot(ts)
+```

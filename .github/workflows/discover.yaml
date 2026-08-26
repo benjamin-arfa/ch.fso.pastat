@@ -1,0 +1,126 @@
+name: Discover stats.swiss structure
+
+# Snapshots the Swiss Stats Explorer (SSE) catalogue and, optionally, the data
+# structure definition of a single dataflow, then commits the result.
+#
+# This exists because development containers usually cannot reach
+# *.stats.swiss, while GitHub runners can. The runner fetches, the repo carries
+# the answer. See docs/PLAYBOOK.md section 3.
+
+on:
+  workflow_dispatch:
+    inputs:
+      flow_id:
+        description: "SDMX dataflow id, e.g. DF_PASTA_552_MONTHLY. Leave empty to only refresh the catalogue."
+        required: false
+        default: ""
+      agency:
+        description: "SDMX agency id, e.g. CH1.PASTA. Leave empty to resolve it from the catalogue."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    env:
+      SSE: https://disseminate.stats.swiss/rest
+      FLOW_ID: ${{ inputs.flow_id }}
+      AGENCY: ${{ inputs.agency }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Fetch dataflow catalogue
+        run: |
+          set -euo pipefail
+          mkdir -p data-raw/discovery
+          curl -sS --fail --retry 3 --retry-delay 5 --max-time 300 \
+            -H 'Accept: application/json' \
+            "$SSE/dataflow" -o data-raw/discovery/dataflows.json
+          echo "catalogue bytes: $(wc -c < data-raw/discovery/dataflows.json)"
+
+      - name: Flatten catalogue to a readable table
+        run: |
+          set -euo pipefail
+          # The SSE catalogue is SDMX-JSON: dataflow URNs live under .references,
+          # keyed as "...Dataflow=<AGENCY>:<FLOW_ID>(<VERSION>)". Fall back to the
+          # data.dataflows array if the shape differs.
+          jq -r '
+            if (.references // empty) then
+              (.references | keys[] | sub(".*Dataflow=";"") | sub("\\)$";""))
+            else
+              (.data.dataflows[]? | "\(.agencyID):\(.id)(\(.version))")
+            end
+          ' data-raw/discovery/dataflows.json \
+            | sed -E 's/^([^:]+):([^(]+)\((.+)$/\1\t\2\t\3/' \
+            | sort -u > data-raw/discovery/dataflows.tsv
+          echo "dataflows found: $(wc -l < data-raw/discovery/dataflows.tsv)"
+          echo "--- agencies ---"
+          cut -f1 data-raw/discovery/dataflows.tsv | cut -d. -f2 | sort -u | tr '\n' ' '; echo
+          if [ -n "$FLOW_ID" ]; then
+            echo "--- match for $FLOW_ID ---"
+            grep -P "\t${FLOW_ID}\t" data-raw/discovery/dataflows.tsv || echo "(no exact match)"
+            echo "--- same agency ---"
+            grep -i "$(echo "$FLOW_ID" | cut -d_ -f2)" data-raw/discovery/dataflows.tsv || true
+          fi
+
+      - name: Fetch data structure definition for the selected dataflow
+        if: ${{ inputs.flow_id != '' }}
+        run: |
+          set -euo pipefail
+          if [ -z "$AGENCY" ]; then
+            AGENCY=$(awk -F'\t' -v f="$FLOW_ID" '$2==f {print $1; exit}' data-raw/discovery/dataflows.tsv)
+          fi
+          VERSION=$(awk -F'\t' -v f="$FLOW_ID" '$2==f {print $3; exit}' data-raw/discovery/dataflows.tsv)
+          if [ -z "$AGENCY" ] || [ -z "$VERSION" ]; then
+            echo "::error::dataflow '$FLOW_ID' not found in the SSE catalogue"
+            exit 1
+          fi
+          echo "resolved: $AGENCY / $FLOW_ID / $VERSION"
+          printf '%s\t%s\t%s\n' "$AGENCY" "$FLOW_ID" "$VERSION" \
+            > "data-raw/discovery/$FLOW_ID.ref.tsv"
+
+          for lang in de fr it en; do
+            curl -sS --fail --retry 3 --retry-delay 5 --max-time 300 \
+              -H 'Accept: application/xml' \
+              -H "Accept-Language: $lang" \
+              "$SSE/dataflow/$AGENCY/$FLOW_ID/$VERSION?references=all" \
+              -o "data-raw/discovery/$FLOW_ID.$lang.xml"
+            echo "$lang: $(wc -c < "data-raw/discovery/$FLOW_ID.$lang.xml") bytes"
+          done
+
+      - name: Fetch a small data sample for the selected dataflow
+        if: ${{ inputs.flow_id != '' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          read -r AGENCY _ VERSION < "data-raw/discovery/$FLOW_ID.ref.tsv"
+          # 'all' plus a narrow period keeps the sample small while still showing
+          # the observation shape and every dimension id.
+          curl -sS --fail --retry 2 --retry-delay 5 --max-time 300 \
+            -H 'Accept: application/xml' \
+            "$SSE/data/$AGENCY,$FLOW_ID,$VERSION/all?startPeriod=2024&endPeriod=2024&dimensionAtObservation=AllDimensions" \
+            -o "data-raw/discovery/$FLOW_ID.sample.xml"
+          echo "sample bytes: $(wc -c < "data-raw/discovery/$FLOW_ID.sample.xml")"
+
+      - name: Regenerate the candidate dataflow list
+        if: always()
+        run: sh inst/build_candidates.sh
+
+      - name: Commit discovery output
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A data-raw/discovery
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "discovery: refresh stats.swiss structure${FLOW_ID:+ for $FLOW_ID}"
+          git push

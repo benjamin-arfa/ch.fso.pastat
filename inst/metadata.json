@@ -1,0 +1,173 @@
+{
+  "country": "ch",
+  "provider": "fso",
+  "dataset": "pasta",
+  "title": {
+    "en": "Arrivals and overnight stays in holiday homes and collective accommodation by month",
+    "de": "Ankünfte und Logiernächte in Ferienwohnungen und Kollektivunterkünften nach Monat",
+    "fr": "Arrivées et nuitées dans des logements de vacances et des hébergements collectifs selon le mois",
+    "it": "Arrivi e pernottamenti in abitazioni di vacanza e alloggi collettivi per mese"
+  },
+  "source_name": {
+    "en": "FSO",
+    "de": "BFS",
+    "fr": "OFS",
+    "it": "UST"
+  },
+  "source_url": "https://www.bfs.admin.ch/asset/en/DF_PASTA_552_MONTHLY",
+  "dataset_frequency": "M",
+  "units": {
+    "20101": {
+      "en": "Number of arrivals",
+      "de": "Anzahl Ankünfte",
+      "fr": "Nombre d'arrivées",
+      "it": "Numero di arrivi"
+    },
+    "20201": {
+      "en": "Number of overnight stays",
+      "de": "Anzahl Logiernächte",
+      "fr": "Nombre de nuitées",
+      "it": "Numero di pernottamenti"
+    },
+    "20401": {
+      "en": "Nights",
+      "de": "Nächte",
+      "fr": "Nuits",
+      "it": "Notti"
+    }
+  },
+  "aggregate": {
+    "20101": "sum",
+    "20201": "sum",
+    "20401": "mean"
+  },
+  "dim_order": [
+    "accommodation",
+    "indicator",
+    "origin",
+    "operation"
+  ],
+  "hierarchy": {
+    "accommodation": {
+      "552001": {},
+      "552002": {}
+    },
+    "indicator": {
+      "20101": {},
+      "20201": {},
+      "20401": {}
+    },
+    "origin": {
+      "tot": {
+        "ch": {},
+        "ausl": {}
+      }
+    },
+    "operation": {
+      "sumw": {},
+      "valuew": {},
+      "ci": {}
+    }
+  },
+  "labels": {
+    "dimnames": {
+      "accommodation": {
+        "en": "Type of accommodation",
+        "de": "Beherbergungstyp",
+        "fr": "Type d'hébergement",
+        "it": "Tipo di alloggio"
+      },
+      "indicator": {
+        "en": "Indicator",
+        "de": "Indikator",
+        "fr": "Indicateur",
+        "it": "Indicatore"
+      },
+      "origin": {
+        "en": "Visitors' country of residence",
+        "de": "Gästeherkunft",
+        "fr": "Origine des hôtes",
+        "it": "Origine degli ospiti"
+      },
+      "operation": {
+        "en": "Statistical operation",
+        "de": "Statistische Operation",
+        "fr": "Opération statistique",
+        "it": "Operazione statistica"
+      },
+      "552001": {
+        "en": "Holiday apartments, holiday homes",
+        "de": "Ferienwohnungen, Ferienhäuser",
+        "fr": "Appartements, maisons de vacances",
+        "it": "Appartamenti e case di vacanza"
+      },
+      "552002": {
+        "en": "Group accommodation",
+        "de": "Kollektivunterkünfte",
+        "fr": "Hébergement collectif",
+        "it": "Alloggi collettivi"
+      },
+      "20101": {
+        "en": "Arrivals",
+        "de": "Ankünfte",
+        "fr": "Arrivées",
+        "it": "Arrivi"
+      },
+      "20201": {
+        "en": "Overnight stays",
+        "de": "Logiernächte",
+        "fr": "Nuitées",
+        "it": "Pernottamenti"
+      },
+      "20401": {
+        "en": "Length of stay",
+        "de": "Aufenthaltsdauer",
+        "fr": "Durée de séjour",
+        "it": "Durata del soggiorno"
+      },
+      "tot": {
+        "en": "Total",
+        "de": "Total",
+        "fr": "Total",
+        "it": "Totale"
+      },
+      "ch": {
+        "en": "Switzerland",
+        "de": "Schweiz",
+        "fr": "Suisse",
+        "it": "Svizzera"
+      },
+      "ausl": {
+        "en": "Foreign countries",
+        "de": "Ausland",
+        "fr": "Etrangers",
+        "it": "Estero"
+      },
+      "sumw": {
+        "en": "Weighted sum",
+        "de": "Gewichtete Summe",
+        "fr": "Somme pondérée",
+        "it": "Somma ponderata"
+      },
+      "valuew": {
+        "en": "Weighted value",
+        "de": "Gewichteter Wert",
+        "fr": "Valeur pondérée",
+        "it": "Valore ponderato"
+      },
+      "ci": {
+        "en": "Confidence interval (+/-)",
+        "de": "Vertrauensintervall (+/–)",
+        "fr": "Intervalle de confiance (+/-)",
+        "it": "Intervallo di confidenza (+/-)"
+      }
+    }
+  },
+  "details": {
+    "en": "Monthly data on arrivals and overnight stays in holiday homes and collective\naccommodation by type of accommodation and guest origin, since 2017.\nSource: FSO survey PASTA (statistics on supplementary accommodation).\nSourced from the Swiss Stats Explorer SDMX API,\ndataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.\nThe cube is sparse: arrivals (20101) and overnight stays (20201) are\npublished as a weighted sum (sumw) with a confidence interval (ci), while\nlength of stay (20401) is published as a weighted value (valuew) only.\n",
+    "de": "Monatsdaten der Ankünfte und Logiernächte in Ferienwohnungen und\nKollektivunterkünften nach Beherbergungstyp und Gästeherkunft, seit 2017.\nQuelle: BFS-Erhebung PASTA (Parahotellerie-Statistik).\nBezogen über die SDMX-API des Swiss Stats Explorer,\nDataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.\n",
+    "fr": "Chiffres mensuels des arrivées et nuitées dans des logements de vacances et\ndes hébergements collectifs selon le type d'hébergement et l'origine des\nhôtes, depuis 2017.\nSource: enquête OFS PASTA (statistique de la parahôtellerie).\nObtenu via l'API SDMX du Swiss Stats Explorer,\ndataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.\n",
+    "it": "Dati mensili per gli arrivi e i pernottamenti in abitazioni di vacanza e\nalloggi collettivi secondo il tipo di alloggio e l'origine degli ospiti,\ndal 2017.\nFonte: rilevazione UST PASTA (statistica del settore paralberghiero).\nOttenuto tramite l'API SDMX dello Swiss Stats Explorer,\ndataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.\n"
+  },
+  "update_checksum": "4ff891c9250ca5782e7479853f7cf77208a9d8b2353160f0e667dfe36fa9a361"
+}

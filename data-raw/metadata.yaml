@@ -1,0 +1,203 @@
+# OpenTSI Dataset Metadata
+# ========================
+# Key pattern: country.provider.dataset.dimension.variable.unit
+# Example: ch.fso.pasta.552001.20101.tot.sumw
+#
+# Derived from the Swiss Stats Explorer data structure definition of
+# CH1.PASTA / DF_PASTA_552_MONTHLY (1.0.0). Regenerate the structural draft with
+# inst/build_metadata.R; see docs/PLAYBOOK.md section 4.
+#
+# Validate with deloRean::validate_metadata() BEFORE deloRean::archive_seal().
+
+# Dataset identity (required)
+country: "ch"
+provider: "fso"
+dataset: "pasta"
+
+# Dataset title (required)
+title:
+  en: "Arrivals and overnight stays in holiday homes and collective accommodation by month"
+  de: "Ankünfte und Logiernächte in Ferienwohnungen und Kollektivunterkünften nach Monat"
+  fr: "Arrivées et nuitées dans des logements de vacances et des hébergements collectifs selon le mois"
+  it: "Arrivi e pernottamenti in abitazioni di vacanza e alloggi collettivi per mese"
+
+# Data source name (required)
+source_name:
+  en: "FSO"
+  de: "BFS"
+  fr: "OFS"
+  it: "UST"
+
+# URL to original data source (required)
+# Canonical topic page for this dataflow, as published by the FSO in the
+# dataflow's own EXT_RESOURCE annotation.
+source_url: "https://www.bfs.admin.ch/asset/en/DF_PASTA_552_MONTHLY"
+
+# Data frequency (required)
+# The source dataflow also carries Q and A observations; this archive holds the
+# monthly ones only (one OpenTSI dataset = one frequency).
+dataset_frequency: "M"
+
+# Units of measurement, per indicator
+units:
+  '20101':
+    en: "Number of arrivals"
+    de: "Anzahl Ankünfte"
+    fr: "Nombre d'arrivées"
+    it: "Numero di arrivi"
+  '20201':
+    en: "Number of overnight stays"
+    de: "Anzahl Logiernächte"
+    fr: "Nombre de nuitées"
+    it: "Numero di pernottamenti"
+  '20401':
+    en: "Nights"
+    de: "Nächte"
+    fr: "Nuits"
+    it: "Notti"
+
+# Aggregation method for temporal aggregation
+# Counts add up over time; an average length of stay does not.
+aggregate:
+  '20101': "sum"
+  '20201': "sum"
+  '20401': "mean"
+
+# Dimension order (left to right in the key, after country.provider.dataset)
+dim_order:
+  - "accommodation"
+  - "indicator"
+  - "origin"
+  - "operation"
+
+# Hierarchical structure of dimensions
+hierarchy:
+  accommodation:
+    '552001': ~
+    '552002': ~
+  indicator:
+    '20101': ~
+    '20201': ~
+    '20401': ~
+  origin:
+    'tot':
+      'ch': ~
+      'ausl': ~
+  operation:
+    'sumw': ~
+    'valuew': ~
+    'ci': ~
+
+# Human-readable labels for dimensions and their values
+labels:
+  dimnames:
+    accommodation:
+      en: "Type of accommodation"
+      de: "Beherbergungstyp"
+      fr: "Type d'hébergement"
+      it: "Tipo di alloggio"
+    indicator:
+      en: "Indicator"
+      de: "Indikator"
+      fr: "Indicateur"
+      it: "Indicatore"
+    origin:
+      en: "Visitors' country of residence"
+      de: "Gästeherkunft"
+      fr: "Origine des hôtes"
+      it: "Origine degli ospiti"
+    operation:
+      en: "Statistical operation"
+      de: "Statistische Operation"
+      fr: "Opération statistique"
+      it: "Operazione statistica"
+    '552001':
+      en: "Holiday apartments, holiday homes"
+      de: "Ferienwohnungen, Ferienhäuser"
+      fr: "Appartements, maisons de vacances"
+      it: "Appartamenti e case di vacanza"
+    '552002':
+      en: "Group accommodation"
+      de: "Kollektivunterkünfte"
+      fr: "Hébergement collectif"
+      it: "Alloggi collettivi"
+    '20101':
+      en: "Arrivals"
+      de: "Ankünfte"
+      fr: "Arrivées"
+      it: "Arrivi"
+    '20201':
+      en: "Overnight stays"
+      de: "Logiernächte"
+      fr: "Nuitées"
+      it: "Pernottamenti"
+    '20401':
+      en: "Length of stay"
+      de: "Aufenthaltsdauer"
+      fr: "Durée de séjour"
+      it: "Durata del soggiorno"
+    'tot':
+      en: "Total"
+      de: "Total"
+      fr: "Total"
+      it: "Totale"
+    'ch':
+      en: "Switzerland"
+      de: "Schweiz"
+      fr: "Suisse"
+      it: "Svizzera"
+    'ausl':
+      en: "Foreign countries"
+      de: "Ausland"
+      fr: "Etrangers"
+      it: "Estero"
+    'sumw':
+      en: "Weighted sum"
+      de: "Gewichtete Summe"
+      fr: "Somme pondérée"
+      it: "Somma ponderata"
+    'valuew':
+      en: "Weighted value"
+      de: "Gewichteter Wert"
+      fr: "Valeur pondérée"
+      it: "Valore ponderato"
+    'ci':
+      en: "Confidence interval (+/-)"
+      de: "Vertrauensintervall (+/–)"
+      fr: "Intervalle de confiance (+/-)"
+      it: "Intervallo di confidenza (+/-)"
+
+# Additional dataset notes
+details:
+  en: |
+    Monthly data on arrivals and overnight stays in holiday homes and collective
+    accommodation by type of accommodation and guest origin, since 2017.
+    Source: FSO survey PASTA (statistics on supplementary accommodation).
+    Sourced from the Swiss Stats Explorer SDMX API,
+    dataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.
+    The cube is sparse: arrivals (20101) and overnight stays (20201) are
+    published as a weighted sum (sumw) with a confidence interval (ci), while
+    length of stay (20401) is published as a weighted value (valuew) only.
+  de: |
+    Monatsdaten der Ankünfte und Logiernächte in Ferienwohnungen und
+    Kollektivunterkünften nach Beherbergungstyp und Gästeherkunft, seit 2017.
+    Quelle: BFS-Erhebung PASTA (Parahotellerie-Statistik).
+    Bezogen über die SDMX-API des Swiss Stats Explorer,
+    Dataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.
+  fr: |
+    Chiffres mensuels des arrivées et nuitées dans des logements de vacances et
+    des hébergements collectifs selon le type d'hébergement et l'origine des
+    hôtes, depuis 2017.
+    Source: enquête OFS PASTA (statistique de la parahôtellerie).
+    Obtenu via l'API SDMX du Swiss Stats Explorer,
+    dataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.
+  it: |
+    Dati mensili per gli arrivi e i pernottamenti in abitazioni di vacanza e
+    alloggi collettivi secondo il tipo di alloggio e l'origine degli ospiti,
+    dal 2017.
+    Fonte: rilevazione UST PASTA (statistica del settore paralberghiero).
+    Ottenuto tramite l'API SDMX dello Swiss Stats Explorer,
+    dataflow CH1.PASTA:DF_PASTA_552_MONTHLY(1.0.0), https://stats.swiss.
+
+# update checksum is empty in the beginning
+update_checksum: ""

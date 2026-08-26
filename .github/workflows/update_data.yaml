@@ -1,0 +1,99 @@
+name: Update Data
+
+# Checks stats.swiss for a new PASTA publication and, if there is one, refreshes
+# data-raw/csv and commits it back.
+#
+# The parahotellerie results are published roughly five weeks after the
+# reference month; the checksum makes the extra runs cheap no-ops.
+
+on:
+  workflow_dispatch:
+    inputs:
+      seal:
+        description: "Validate + render metadata and (re)initialise the update checksum instead of updating data. Run once after metadata changes."
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    - cron: "0 6 8,12,16 * *"
+
+permissions:
+  contents: write
+
+# Two update runs on the same branch would race each other's data commit.
+concurrency:
+  group: update-data-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            github::opentsi/opentimeseries
+            github::opentsi/deloRean
+            local::.
+
+      - name: Validate metadata
+        run: Rscript -e 'deloRean::validate_metadata("data-raw/metadata.yaml")'
+
+      # Sealing means "the archive now reflects this state", so the initial data
+      # load has to happen before the checksum is stamped -- otherwise the first
+      # scheduled run correctly reports "no update needed" against an empty
+      # data-raw/csv. (The KOF-sourced archives seal after importing a vintage
+      # backlog; stats.swiss has no backlog, so the load happens here.)
+      - name: Seal archive
+        if: ${{ inputs.seal }}
+        run: |
+          Rscript -e '
+            deloRean::render_metadata(".")
+            ch.fso.pasta::process_data()
+            deloRean::archive_seal(ch.fso.pasta:::generate_checksum_input())
+          '
+
+      - name: Refresh dataset shield after seal
+        if: ${{ inputs.seal }}
+        run: Rscript inst/generate_shield.R
+
+      - name: Handle update
+        if: ${{ !inputs.seal }}
+        run: Rscript -e 'ch.fso.pasta::handle_update()'
+
+      - name: Refresh dataset shield
+        if: ${{ !inputs.seal }}
+        run: Rscript inst/generate_shield.R
+
+      - name: Commit and push changes (if any)
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "${{ inputs.seal && 'seal archive' || 'update data' }}"
+          # Someone may have pushed to the branch while the fetch was running;
+          # a data commit is too expensive to throw away over that, so rebase
+          # onto whatever arrived and retry.
+          for attempt in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "push rejected (attempt $attempt), rebasing onto origin/${{ github.ref_name }}"
+            git pull --rebase origin "${{ github.ref_name }}"
+            sleep $((attempt * 5))
+          done
+          echo "::error::could not push the data commit after 3 attempts"
+          exit 1

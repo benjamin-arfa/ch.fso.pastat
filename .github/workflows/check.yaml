@@ -1,0 +1,80 @@
+name: Check
+
+# Everything that must hold before a listing request: the package installs, the
+# metadata validates against the OpenTSI schema, the declared key structure
+# matches the CSVs on disk, and source_url actually resolves.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            github::opentsi/opentimeseries
+            github::opentsi/deloRean
+            any::rcmdcheck
+            any::yaml
+            any::jsonlite
+            local::.
+
+      - name: Validate metadata against the OpenTSI schema
+        run: Rscript -e 'stopifnot(isTRUE(deloRean::validate_metadata("data-raw/metadata.yaml")))'
+
+      - name: Every declared code has a label in all four languages
+        run: Rscript inst/check_metadata_labels.R
+
+      # A dead source_url is worth catching; a slow day at the FSO is not. Only a
+      # definite HTTP error fails the build -- a network-level failure warns.
+      # (HEAD is avoided: the asset endpoint does not answer it reliably.)
+      - name: source_url resolves
+        run: |
+          set -uo pipefail
+          url=$(Rscript -e 'cat(yaml::read_yaml("data-raw/metadata.yaml")$source_url)')
+          echo "checking $url"
+          code=$(curl -sS -L -o /dev/null -w '%{http_code}' --max-time 30 "$url" || echo 000)
+          if [ "$code" = "000" ]; then
+            echo "::warning::could not reach $url (network error or timeout); not failing the build"
+          elif [ "$code" -ge 400 ]; then
+            echo "::error::$url returned HTTP $code"
+            exit 1
+          else
+            echo "$url -> HTTP $code"
+          fi
+
+      # opentimeseries::get_commit_dates() hardcodes the branches it will look
+      # at -- "main", then "master" -- and ignores the repository's configured
+      # default branch. So the archive is only readable by the OpenTSI client
+      # once its data lives on a branch with one of those two names, and this
+      # check can only run there. It is the actual acceptance criterion for a
+      # listing request.
+      - name: Consumer round-trip via opentimeseries
+        if: ${{ github.ref_name == 'main' || github.ref_name == 'master' }}
+        # get_commit_dates() reads GITHUB_TOKEN and otherwise falls back to
+        # unauthenticated GitHub API calls, rate-limited to 60/hour per runner IP.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Rscript -e '
+            dt <- opentimeseries::read_open_ts(
+              series = "552001.20201.tot.sumw",
+              remote_archive = paste0("${{ github.repository }}")
+            )
+            print(utils::head(dt))
+            stopifnot(nrow(dt) > 0, all(c("date", "value") %in% names(dt)))
+          '
+
+      - name: R CMD check
+        run: Rscript -e 'rcmdcheck::rcmdcheck(args = c("--no-manual", "--no-tests"), error_on = "error")'

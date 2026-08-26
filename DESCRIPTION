@@ -1,0 +1,20 @@
+Package: ch.fso.pasta
+Title: Versioned Long Format Time Series from CH.FSO.PASTA
+Version: 0.1
+Authors@R: 
+    person("Open Time Series Initiative", , , "info@opentsi.org", role = c("aut", "cre"))
+Description: The ch.fso.pasta package provides versioned time series data
+    and their meta information for scientific research.  In addition, the
+    package contains the extract-transform-load (ETL) functionality that
+    sources the data from its original provider, the Swiss Stats Explorer
+    (stats.swiss) API of the Swiss Federal Statistical Office.
+License: GPL (>= 3)
+Imports: 
+    digest,
+    httr2,
+    opentimeseries,
+    utils,
+    xml2
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
